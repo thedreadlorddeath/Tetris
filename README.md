@@ -17,6 +17,10 @@
   <img src="https://img.shields.io/badge/License-MIT-32F050?style=for-the-badge" alt="MIT License" />
 </p>
 
+<p align="center">
+  <img src="assets/arcade_banner.svg" alt="Cyberpunk Tetris Architecture Banner" width="100%" />
+</p>
+
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────┐
 │  SYSTEM STATUS: ONLINE              CYBERDECK CORE: C++17 / SFML 2.6.2          │
@@ -25,6 +29,16 @@
 │  RANDOMIZER: 7-BAG GENERATOR        VFX: VELOCITY SPARKS & HAPTIC SHAKE         │
 └──────────────────────────────────────────────────────────────────────────────────┘
 ```
+
+---
+
+## 🎮 Live Engine Gameplay Preview
+
+<p align="center">
+  <img src="assets/gameplay.gif" alt="Live Gameplay Demonstration" width="85%" style="border-radius: 8px; border: 2px solid #00F0FF;" />
+  <br>
+  <em>⚡ <b>Live In-Engine Simulation:</b> Authentic SRS Wall Kicks, Projected Ghost Piece, Instant Hard Drop, Dynamic Line-Clear Sparks, Screen Shake & Quad "TETRIS!" Banner ⚡</em>
+</p>
 
 ---
 
@@ -139,6 +153,9 @@ Tetris/
 ├── CMakeLists.txt          # Automated FetchContent for SFML 2.6.2 & static compilation
 ├── .gitignore              # Ignores build dirs, binaries, and runtime artifacts
 ├── README.md               # Interactive Cyberpunk documentation
+├── assets/
+│   ├── arcade_banner.svg   # Neon architecture vector banner
+│   └── gameplay.gif        # Live gameplay demonstration GIF
 ├── include/
 │   ├── Config.hpp          # Dimensions, timings, colors, and game states
 │   ├── Tetromino.hpp       # Piece geometries, SRS kick tables, 3D block renderer

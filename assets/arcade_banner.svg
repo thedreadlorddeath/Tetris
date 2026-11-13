@@ -1,0 +1,152 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 340" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradients -->
+    <linearGradient id="bgGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#080B12" />
+      <stop offset="40%" stop-color="#101524" />
+      <stop offset="80%" stop-color="#18132B" />
+      <stop offset="100%" stop-color="#090C15" />
+    </linearGradient>
+
+    <!-- Neon Glow Filter -->
+    <filter id="neonGlowCyan" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur1" />
+      <feGaussianBlur stdDeviation="14" result="blur2" />
+      <feMerge>
+        <feMergeNode in="blur2" />
+        <feMergeNode in="blur1" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <filter id="neonGlowViolet" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <!-- Grid Perspective Matrix -->
+    <linearGradient id="gridFade" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#00F0FF" stop-opacity="0.35" />
+      <stop offset="100%" stop-color="#AF3CFF" stop-opacity="0.0" />
+    </linearGradient>
+  </defs>
+
+  <style>
+    .title-font { font-family: 'Segoe UI', 'Montserrat', 'Helvetica', sans-serif; font-weight: 900; }
+    .mono-font { font-family: 'Consolas', 'Fira Code', 'Courier New', monospace; font-weight: 700; }
+    
+    @keyframes pulseGlow {
+      0% { opacity: 0.8; }
+      50% { opacity: 1; filter: drop-shadow(0 0 12px #00F0FF); }
+      100% { opacity: 0.8; }
+    }
+    .pulsing-cyan { animation: pulseGlow 3s infinite ease-in-out; }
+  </style>
+
+  <!-- Deep Canvas -->
+  <rect width="1000" height="340" rx="16" fill="url(#bgGlow)" stroke="#2D3E5F" stroke-width="2" />
+
+  <!-- Retro Cyberpunk Floor Grid (Perspective horizon) -->
+  <g opacity="0.4">
+    <!-- Horizontal floor lines -->
+    <line x1="0" y1="230" x2="1000" y2="230" stroke="#00F0FF" stroke-width="0.8" opacity="0.2" />
+    <line x1="0" y1="250" x2="1000" y2="250" stroke="#00F0FF" stroke-width="1.0" opacity="0.3" />
+    <line x1="0" y1="275" x2="1000" y2="275" stroke="#00F0FF" stroke-width="1.2" opacity="0.5" />
+    <line x1="0" y1="305" x2="1000" y2="305" stroke="#00F0FF" stroke-width="1.5" opacity="0.7" />
+    <line x1="0" y1="338" x2="1000" y2="338" stroke="#00F0FF" stroke-width="2.0" opacity="0.9" />
+
+    <!-- Perspective Rays radiating from vanishing point (500, 200) -->
+    <line x1="500" y1="210" x2="-200" y2="340" stroke="#00F0FF" stroke-width="1.2" opacity="0.5" />
+    <line x1="500" y1="210" x2="50" y2="340" stroke="#00F0FF" stroke-width="1.2" opacity="0.6" />
+    <line x1="500" y1="210" x2="250" y2="340" stroke="#00F0FF" stroke-width="1.2" opacity="0.7" />
+    <line x1="500" y1="210" x2="400" y2="340" stroke="#00F0FF" stroke-width="1.2" opacity="0.8" />
+    <line x1="500" y1="210" x2="500" y2="340" stroke="#00F0FF" stroke-width="1.5" opacity="0.9" />
+    <line x1="500" y1="210" x2="600" y2="340" stroke="#00F0FF" stroke-width="1.2" opacity="0.8" />
+    <line x1="500" y1="210" x2="750" y2="340" stroke="#00F0FF" stroke-width="1.2" opacity="0.7" />
+    <line x1="500" y1="210" x2="950" y2="340" stroke="#00F0FF" stroke-width="1.2" opacity="0.6" />
+    <line x1="500" y1="210" x2="1200" y2="340" stroke="#00F0FF" stroke-width="1.2" opacity="0.5" />
+  </g>
+
+  <!-- Left Side Floating Tetromino Composition -->
+  <g transform="translate(60, 45) scale(0.9)">
+    <!-- T-Piece (Neon Violet) -->
+    <g filter="url(#neonGlowViolet)" opacity="0.95">
+      <!-- Top Center -->
+      <rect x="50" y="20" width="30" height="30" rx="4" fill="#AF3CFF" stroke="#DF9BFF" stroke-width="2"/>
+      <!-- Bottom 3 -->
+      <rect x="20" y="50" width="30" height="30" rx="4" fill="#AF3CFF" stroke="#DF9BFF" stroke-width="2"/>
+      <rect x="50" y="50" width="30" height="30" rx="4" fill="#AF3CFF" stroke="#DF9BFF" stroke-width="2"/>
+      <rect x="80" y="50" width="30" height="30" rx="4" fill="#AF3CFF" stroke="#DF9BFF" stroke-width="2"/>
+    </g>
+
+    <!-- S-Piece (Acid Green) -->
+    <g opacity="0.9" transform="translate(60, 85)">
+      <rect x="30" y="0" width="28" height="28" rx="4" fill="#32F050" stroke="#8AFF9E" stroke-width="1.5"/>
+      <rect x="58" y="0" width="28" height="28" rx="4" fill="#32F050" stroke="#8AFF9E" stroke-width="1.5"/>
+      <rect x="2" y="28" width="28" height="28" rx="4" fill="#32F050" stroke="#8AFF9E" stroke-width="1.5"/>
+      <rect x="30" y="28" width="28" height="28" rx="4" fill="#32F050" stroke="#8AFF9E" stroke-width="1.5"/>
+    </g>
+  </g>
+
+  <!-- Central Header Text -->
+  <g transform="translate(500, 105)" text-anchor="middle">
+    <!-- Subtitle badge -->
+    <rect x="-190" y="-70" width="380" height="26" rx="13" fill="#121828" stroke="#00F0FF" stroke-width="1.2" opacity="0.85" />
+    <text x="0" y="-52" class="mono-font" font-size="12" fill="#00F0FF" letter-spacing="4">⚡ ARCADE ENGINE ARCHITECTURE ⚡</text>
+
+    <!-- Big Cyberpunk Title -->
+    <text x="0" y="0" class="title-font pulsing-cyan" font-size="54" fill="#FFFFFF" letter-spacing="6" filter="url(#neonGlowCyan)">
+      CYBERPUNK TETRIS
+    </text>
+    
+    <!-- Secondary Glow Title line -->
+    <text x="0" y="32" class="mono-font" font-size="15" fill="#AF3CFF" letter-spacing="5" filter="url(#neonGlowViolet)">
+      PURE C++17 // SFML 2.6.2 // 100% PROCEDURAL AUDIO
+    </text>
+  </g>
+
+  <!-- Right Side Floating Tetromino Composition -->
+  <g transform="translate(800, 45) scale(0.9)">
+    <!-- I-Bar (Electric Cyan) -->
+    <g filter="url(#neonGlowCyan)">
+      <rect x="30" y="0" width="28" height="28" rx="4" fill="#00F0FF" stroke="#A6FAFF" stroke-width="2"/>
+      <rect x="30" y="28" width="28" height="28" rx="4" fill="#00F0FF" stroke="#A6FAFF" stroke-width="2"/>
+      <rect x="30" y="56" width="28" height="28" rx="4" fill="#00F0FF" stroke="#A6FAFF" stroke-width="2"/>
+      <rect x="30" y="84" width="28" height="28" rx="4" fill="#00F0FF" stroke="#A6FAFF" stroke-width="2"/>
+    </g>
+
+    <!-- O-Block (Bright Gold) -->
+    <g transform="translate(-50, 70)">
+      <rect x="0" y="0" width="26" height="26" rx="4" fill="#FFD700" stroke="#FFF294" stroke-width="1.5"/>
+      <rect x="26" y="0" width="26" height="26" rx="4" fill="#FFD700" stroke="#FFF294" stroke-width="1.5"/>
+      <rect x="0" y="26" width="26" height="26" rx="4" fill="#FFD700" stroke="#FFF294" stroke-width="1.5"/>
+      <rect x="26" y="26" width="26" height="26" rx="4" fill="#FFD700" stroke="#FFF294" stroke-width="1.5"/>
+    </g>
+  </g>
+
+  <!-- Bottom Terminal Status Bar -->
+  <g transform="translate(50, 205)">
+    <!-- Terminal Pill 1 -->
+    <rect x="15" y="0" width="200" height="34" rx="8" fill="#121828" stroke="#2D3E5F" stroke-width="1.2" />
+    <circle cx="35" cy="17" r="4" fill="#32F050" />
+    <text x="48" y="22" class="mono-font" font-size="11" fill="#EBF5FF">SRS ROTATION // KICKS</text>
+
+    <!-- Terminal Pill 2 -->
+    <rect x="245" y="0" width="200" height="34" rx="8" fill="#121828" stroke="#2D3E5F" stroke-width="1.2" />
+    <circle cx="265" cy="17" r="4" fill="#00F0FF" />
+    <text x="278" y="22" class="mono-font" font-size="11" fill="#EBF5FF">7-BAG RANDOMIZER</text>
+
+    <!-- Terminal Pill 3 -->
+    <rect x="475" y="0" width="200" height="34" rx="8" fill="#121828" stroke="#2D3E5F" stroke-width="1.2" />
+    <circle cx="495" cy="17" r="4" fill="#AF3CFF" />
+    <text x="508" y="22" class="mono-font" font-size="11" fill="#EBF5FF">ZERO-ASSET DSP AUDIO</text>
+
+    <!-- Terminal Pill 4 -->
+    <rect x="705" y="0" width="180" height="34" rx="8" fill="#121828" stroke="#2D3E5F" stroke-width="1.2" />
+    <circle cx="725" cy="17" r="4" fill="#FF8214" />
+    <text x="738" y="22" class="mono-font" font-size="11" fill="#EBF5FF">DAS 160ms / ARR 33ms</text>
+  </g>
+</svg>
