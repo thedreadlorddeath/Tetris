@@ -6,8 +6,7 @@
 #include <sstream>
 
 Game::Game()
-    : m_window(sf::VideoMode(Config::WINDOW_WIDTH, Config::WINDOW_HEIGHT), "TETRIS // NEON ARCADE", sf::Style::Titlebar | sf::Style::Close),
-      m_holdPiece(PieceType::NONE),
+    : m_holdPiece(PieceType::NONE),
       m_canHold(true),
       m_state(GameState::START_SCREEN),
       m_score(0),
@@ -27,15 +26,43 @@ Game::Game()
       m_tetrisBannerTimer(0.0f),
       m_fontLoaded(false)
 {
-    m_window.setFramerateLimit(60);
+    // Setup touch button geometry
+    m_btnHold      = sf::FloatRect(60.0f,  930.0f, 180.0f, 80.0f);
+    m_btnRotCCW    = sf::FloatRect(270.0f, 930.0f, 180.0f, 80.0f);
+    m_btnRotCW     = sf::FloatRect(510.0f, 930.0f, 180.0f, 80.0f);
+    m_btnPause     = sf::FloatRect(720.0f, 930.0f, 180.0f, 80.0f);
 
-    // Load system font (Windows has segoeui.ttf, arial.ttf, consola.ttf)
+    m_btnLeft      = sf::FloatRect(60.0f,  1040.0f, 220.0f, 140.0f);
+    m_btnHardDrop  = sf::FloatRect(310.0f, 1040.0f, 340.0f, 140.0f);
+    m_btnRight     = sf::FloatRect(680.0f, 1040.0f, 220.0f, 140.0f);
+
+    m_btnMute      = sf::FloatRect(60.0f,  1210.0f, 220.0f, 130.0f);
+    m_btnSoftDrop  = sf::FloatRect(310.0f, 1210.0f, 340.0f, 130.0f);
+    m_btnRestart   = sf::FloatRect(680.0f, 1210.0f, 220.0f, 130.0f);
+
+#ifdef __ANDROID__
+    m_window.create(sf::VideoMode::getDesktopMode(), "TETRIS // NEON ARCADE");
+    m_window.setFramerateLimit(60);
+    updateView();
+#else
+    m_window.create(sf::VideoMode(Config::WINDOW_WIDTH, Config::WINDOW_HEIGHT), "TETRIS // NEON ARCADE", sf::Style::Titlebar | sf::Style::Close);
+    m_window.setFramerateLimit(60);
+#endif
+
+    // Font Candidate loading (Android uses AAssetManager "font.ttf" inside APK)
+#ifdef __ANDROID__
     const std::vector<std::string> fontCandidates = {
+        "font.ttf"
+    };
+#else
+    const std::vector<std::string> fontCandidates = {
+        "assets/font.ttf",
         "C:/Windows/Fonts/segoeui.ttf",
         "C:/Windows/Fonts/arial.ttf",
         "C:/Windows/Fonts/consola.ttf",
         "C:/Windows/Fonts/tahoma.ttf"
     };
+#endif
 
     for (const auto& path : fontCandidates) {
         if (m_font.loadFromFile(path)) {
@@ -47,8 +74,62 @@ Game::Game()
     loadHighScore();
 }
 
+float Game::getBoardOffsetX() const {
+#ifdef __ANDROID__
+    return 320.0f;
+#else
+    return Config::BOARD_OFFSET_X;
+#endif
+}
+
+float Game::getBoardOffsetY() const {
+#ifdef __ANDROID__
+    return 240.0f;
+#else
+    return Config::BOARD_OFFSET_Y;
+#endif
+}
+
+void Game::updateView() {
+    float windowWidth = static_cast<float>(m_window.getSize().x);
+    float windowHeight = static_cast<float>(m_window.getSize().y);
+    if (windowWidth <= 0.0f || windowHeight <= 0.0f) return;
+
+#ifdef __ANDROID__
+    float targetWidth = 960.0f;
+    float targetHeight = 1600.0f;
+#else
+    float targetWidth = Config::WINDOW_WIDTH;
+    float targetHeight = Config::WINDOW_HEIGHT;
+#endif
+
+    float windowRatio = windowWidth / windowHeight;
+    float targetRatio = targetWidth / targetHeight;
+    float sizeX = 1.0f;
+    float sizeY = 1.0f;
+    float posX = 0.0f;
+    float posY = 0.0f;
+
+    if (windowRatio >= targetRatio) {
+        sizeX = targetRatio / windowRatio;
+        posX = (1.0f - sizeX) / 2.0f;
+    } else {
+        sizeY = windowRatio / targetRatio;
+        posY = (1.0f - sizeY) / 2.0f;
+    }
+
+    sf::View view(sf::FloatRect(0.0f, 0.0f, targetWidth, targetHeight));
+    view.setViewport(sf::FloatRect(posX, posY, sizeX, sizeY));
+    m_window.setView(view);
+}
+
 void Game::loadHighScore() {
-    std::ifstream file("highscore.txt");
+#ifdef __ANDROID__
+    const char* path = "/data/data/com.thedreadlorddeath.tetris/files/highscore.txt";
+#else
+    const char* path = "highscore.txt";
+#endif
+    std::ifstream file(path);
     if (file.is_open()) {
         file >> m_highScore;
         file.close();
@@ -58,7 +139,12 @@ void Game::loadHighScore() {
 }
 
 void Game::saveHighScore() {
-    std::ofstream file("highscore.txt");
+#ifdef __ANDROID__
+    const char* path = "/data/data/com.thedreadlorddeath.tetris/files/highscore.txt";
+#else
+    const char* path = "highscore.txt";
+#endif
+    std::ofstream file(path);
     if (file.is_open()) {
         file << m_highScore;
         file.close();
@@ -182,8 +268,8 @@ void Game::hardDrop() {
 
     // Hard drop particle impact burst
     float blockPx = Config::BLOCK_SIZE;
-    float startX = Config::BOARD_OFFSET_X + ghostPos.x * blockPx;
-    float impactY = Config::BOARD_OFFSET_Y + (ghostPos.y + 2) * blockPx;
+    float startX = getBoardOffsetX() + ghostPos.x * blockPx;
+    float impactY = getBoardOffsetY() + (ghostPos.y + 2) * blockPx;
     m_particles.emitHardDrop(startX, impactY, 3.0f * blockPx, m_currentPiece.getColor());
 
     m_sounds.playHardDrop();
@@ -246,7 +332,7 @@ void Game::checkLineClears() {
 
         // Particle explosion
         float boardWidth = Config::BOARD_WIDTH * Config::BLOCK_SIZE;
-        m_particles.emitLineClear(fullRows, Config::BOARD_OFFSET_X, Config::BOARD_OFFSET_Y, 
+        m_particles.emitLineClear(fullRows, getBoardOffsetX(), getBoardOffsetY(), 
                                   boardWidth, Config::BLOCK_SIZE, count);
 
         if (count >= 4) {
@@ -263,12 +349,98 @@ void Game::checkLineClears() {
     }
 }
 
+void Game::handleTouch(int pixelX, int pixelY, bool isDown, unsigned int finger) {
+    (void)finger;
+    sf::Vector2f pos = m_window.mapPixelToCoords(sf::Vector2i(pixelX, pixelY));
+
+    if (m_state == GameState::START_SCREEN || m_state == GameState::GAME_OVER) {
+        if (isDown) {
+            startNewGame();
+        }
+        return;
+    }
+
+    if (m_state == GameState::PAUSED) {
+        if (isDown) {
+            m_state = GameState::PLAYING;
+        }
+        return;
+    }
+
+    if (m_state == GameState::PLAYING) {
+        if (isDown) {
+            if (m_btnHold.contains(pos)) {
+                holdCurrentPiece();
+            } else if (m_btnPause.contains(pos)) {
+                m_state = GameState::PAUSED;
+            } else if (m_btnRotCCW.contains(pos)) {
+                tryRotate(false);
+            } else if (m_btnRotCW.contains(pos)) {
+                tryRotate(true);
+            } else if (m_btnLeft.contains(pos)) {
+                m_moveDir = -1;
+                m_dasTimer = 0.0f;
+                m_arrTimer = 0.0f;
+                tryMove(-1, 0);
+            } else if (m_btnRight.contains(pos)) {
+                m_moveDir = 1;
+                m_dasTimer = 0.0f;
+                m_arrTimer = 0.0f;
+                tryMove(1, 0);
+            } else if (m_btnHardDrop.contains(pos)) {
+                hardDrop();
+            } else if (m_btnSoftDrop.contains(pos)) {
+                m_softDropActive = true;
+                m_softDropTimer = 0.0f;
+                if (tryMove(0, 1)) {
+                    m_score += 1;
+                    m_fallTimer = 0.0f;
+                }
+            } else if (m_btnMute.contains(pos)) {
+                m_sounds.toggleMute();
+            } else if (m_btnRestart.contains(pos)) {
+                startNewGame();
+            }
+        } else {
+            if (m_btnLeft.contains(pos) || m_btnRight.contains(pos)) {
+                m_moveDir = 0;
+            }
+            if (m_btnSoftDrop.contains(pos)) {
+                m_softDropActive = false;
+            }
+        }
+    }
+}
+
 void Game::processEvents() {
     sf::Event event;
     while (m_window.pollEvent(event)) {
         if (event.type == sf::Event::Closed) {
             m_window.close();
             return;
+        }
+
+        if (event.type == sf::Event::LostFocus) {
+            if (m_state == GameState::PLAYING) {
+                m_state = GameState::PAUSED;
+            }
+        }
+
+        if (event.type == sf::Event::Resized) {
+            updateView();
+        }
+
+#ifdef __ANDROID__
+        if (event.type == sf::Event::TouchBegan) {
+            handleTouch(event.touch.x, event.touch.y, true, event.touch.finger);
+        } else if (event.type == sf::Event::TouchEnded) {
+            handleTouch(event.touch.x, event.touch.y, false, event.touch.finger);
+        }
+#endif
+        if (event.type == sf::Event::MouseButtonPressed) {
+            handleTouch(event.mouseButton.x, event.mouseButton.y, true, 0);
+        } else if (event.type == sf::Event::MouseButtonReleased) {
+            handleTouch(event.mouseButton.x, event.mouseButton.y, false, 0);
         }
 
         if (event.type == sf::Event::KeyPressed) {
@@ -387,41 +559,46 @@ void Game::processEvents() {
 void Game::update(float dt) {
     m_particles.update(dt);
 
-    // Roll-up animated score
+    if (m_state != GameState::PLAYING) {
+        return;
+    }
+
+    // Animated score roll-up
     if (m_displayScore < m_score) {
         int diff = m_score - m_displayScore;
-        int step = std::max(1, static_cast<int>(diff * 12.0f * dt));
+        int step = std::max(1, static_cast<int>(diff * 14.0f * dt));
         m_displayScore = std::min(m_score, m_displayScore + step);
     }
 
+    // Tetris banner decay
     if (m_tetrisBannerTimer > 0.0f) {
         m_tetrisBannerTimer -= dt;
     }
 
-    if (m_state != GameState::PLAYING) return;
-
-    // Handle board line clear animation
+    // Check line clear animation status
     if (m_board.isAnimatingLineClear()) {
         m_board.update(dt);
         if (!m_board.isAnimatingLineClear()) {
             spawnNextPiece();
         }
-        return;
+        return; // Pause piece falling while line clears animate
     }
 
-    // Horizontal Auto-Shift (DAS / ARR)
+    // Horizontal Movement (DAS & ARR Handling)
     if (m_moveDir != 0) {
         m_dasTimer += dt;
         if (m_dasTimer >= Config::DAS_DELAY) {
             m_arrTimer += dt;
             while (m_arrTimer >= Config::ARR_INTERVAL) {
                 m_arrTimer -= Config::ARR_INTERVAL;
-                tryMove(m_moveDir, 0);
+                if (!tryMove(m_moveDir, 0)) {
+                    break;
+                }
             }
         }
     }
 
-    // Soft Drop Continuous
+    // Soft Drop Tick
     if (m_softDropActive) {
         m_softDropTimer += dt;
         while (m_softDropTimer >= Config::SOFT_DROP_INTERVAL) {
@@ -433,52 +610,30 @@ void Game::update(float dt) {
         }
     }
 
-    // Check if piece is touching stack/floor for Lock Delay
-    Point currentPos = m_currentPiece.getPosition();
-    bool touchesFloor = !m_board.isValidPosition(m_currentPiece.getType(), 
-                                                 m_currentPiece.getRotation(), 
-                                                 Point{currentPos.x, currentPos.y + 1});
+    // Natural Gravity Fall
+    float fallInterval = getFallInterval();
+    m_fallTimer += dt;
+    if (m_fallTimer >= fallInterval) {
+        m_fallTimer = 0.0f;
+        if (!tryMove(0, 1)) {
+            m_isLocking = true;
+        }
+    }
 
-    if (touchesFloor) {
+    // Lock Delay Logic
+    Point curPos = m_currentPiece.getPosition();
+    bool onGround = !m_board.isValidPosition(m_currentPiece.getType(), m_currentPiece.getRotation(), 
+                                             {curPos.x, curPos.y + 1});
+
+    if (onGround) {
         m_isLocking = true;
         m_lockTimer += dt;
         if (m_lockTimer >= Config::LOCK_DELAY) {
             onPieceLocked();
-            return;
         }
     } else {
         m_isLocking = false;
         m_lockTimer = 0.0f;
-    }
-
-    // Normal Gravity Fall
-    m_fallTimer += dt;
-    if (m_fallTimer >= getFallInterval()) {
-        m_fallTimer = 0.0f;
-        if (!tryMove(0, 1)) {
-            // Reached bottom, lock delay handles the rest
-            m_isLocking = true;
-        }
-    }
-}
-
-void Game::drawCard(float x, float y, float width, float height, const std::string& title) {
-    // Outer card rectangle with subtle border
-    sf::RectangleShape card(sf::Vector2f(width, height));
-    card.setPosition(x, y);
-    card.setFillColor(Config::PANEL_BG);
-    card.setOutlineThickness(1.5f);
-    card.setOutlineColor(Config::PANEL_BORDER);
-    m_window.draw(card);
-
-    // Header bar if title provided
-    if (!title.empty()) {
-        sf::RectangleShape titleBar(sf::Vector2f(width, 24.0f));
-        titleBar.setPosition(x, y);
-        titleBar.setFillColor(sf::Color(25, 34, 55, 200));
-        m_window.draw(titleBar);
-
-        renderText(title, x + 10.0f, y + 4.0f, 13, Config::TEXT_MUTED, false, true);
     }
 }
 
@@ -505,12 +660,87 @@ void Game::renderText(const std::string& str, float x, float y, unsigned int siz
     m_window.draw(text);
 }
 
+void Game::drawCard(float x, float y, float width, float height, const std::string& title) {
+    sf::RectangleShape bg(sf::Vector2f(width, height));
+    bg.setPosition(x, y);
+    bg.setFillColor(Config::PANEL_BG);
+    bg.setOutlineThickness(1.5f);
+    bg.setOutlineColor(Config::PANEL_BORDER);
+    m_window.draw(bg);
+
+    if (!title.empty()) {
+        renderText(title, x + 16.0f, y + 14.0f, 13, Config::TEXT_MUTED, false, true);
+    }
+}
+
+void Game::drawMobileControls() {
+    auto drawBtn = [this](const sf::FloatRect& r, const std::string& label, sf::Color borderCol) {
+        sf::RectangleShape box(sf::Vector2f(r.width, r.height));
+        box.setPosition(r.left, r.top);
+        box.setFillColor(sf::Color(18, 24, 40, 220));
+        box.setOutlineThickness(2.0f);
+        box.setOutlineColor(borderCol);
+        m_window.draw(box);
+
+        renderText(label, r.left + r.width / 2.0f, r.top + r.height / 2.0f, 20, sf::Color(235, 245, 255), true, true);
+    };
+
+    drawBtn(m_btnHold, "HOLD", Config::ACCENT_CYAN);
+    drawBtn(m_btnRotCCW, "ROT L", Config::ACCENT_VIOLET);
+    drawBtn(m_btnRotCW, "ROT R", Config::ACCENT_VIOLET);
+    drawBtn(m_btnPause, "PAUSE", Config::PANEL_BORDER);
+
+    drawBtn(m_btnLeft, "< LEFT", Config::ACCENT_CYAN);
+    drawBtn(m_btnHardDrop, "HARD DROP", sf::Color(0, 240, 255));
+    drawBtn(m_btnRight, "RIGHT >", Config::ACCENT_CYAN);
+
+    drawBtn(m_btnMute, "MUTE", Config::TEXT_MUTED);
+    drawBtn(m_btnSoftDrop, "SOFT DROP", sf::Color(50, 240, 80));
+    drawBtn(m_btnRestart, "RESTART", sf::Color(255, 45, 75));
+}
+
 void Game::drawHUD() {
-    float boardX = Config::BOARD_OFFSET_X;
-    float boardY = Config::BOARD_OFFSET_Y;
+    float boardX = getBoardOffsetX();
+    float boardY = getBoardOffsetY();
     float blockSize = Config::BLOCK_SIZE;
 
-    // LEFT PANEL: HOLD BOX
+#ifdef __ANDROID__
+    // Mobile Top Bar
+    drawCard(60.0f, 30.0f, 260.0f, 170.0f, "SCORE");
+    renderText(std::to_string(m_displayScore), 80.0f, 85.0f, 36, Config::ACCENT_CYAN, false, true);
+    renderText("BEST: " + std::to_string(m_highScore), 80.0f, 140.0f, 18, Config::TEXT_MUTED, false, false);
+
+    drawCard(350.0f, 30.0f, 260.0f, 170.0f, "LEVEL & SPEED");
+    renderText("LEVEL " + std::to_string(m_level), 370.0f, 85.0f, 32, sf::Color(255, 215, 0), false, true);
+    renderText("LINES: " + std::to_string(m_linesCleared), 370.0f, 140.0f, 18, Config::TEXT_MUTED, false, false);
+
+    drawCard(640.0f, 30.0f, 260.0f, 170.0f, "STATUS");
+    renderText("CYBERPUNK", 660.0f, 85.0f, 22, Config::ACCENT_VIOLET, false, true);
+    renderText("ARCADE 60FPS", 660.0f, 140.0f, 18, Config::ACCENT_CYAN, false, false);
+
+    // Left Panel: HOLD BOX
+    float leftX = 60.0f;
+    drawCard(leftX, boardY, 220.0f, 180.0f, "HOLD PIECE");
+    if (m_holdPiece != PieceType::NONE) {
+        float holdAlpha = m_canHold ? 1.0f : 0.45f;
+        Tetromino::drawPreview(m_window, m_holdPiece, leftX + 110.0f, boardY + 105.0f, 28.0f, holdAlpha);
+    }
+
+    // Right Panel: NEXT QUEUE
+    float rightX = boardX + Config::BOARD_WIDTH * blockSize + 40.0f;
+    drawCard(rightX, boardY, 220.0f, 420.0f, "NEXT QUEUE");
+    float nextY = boardY + 80.0f;
+    for (int i = 0; i < 3; ++i) {
+        PieceType p = m_bag.peek(i);
+        Tetromino::drawPreview(m_window, p, rightX + 110.0f, nextY, 26.0f, 1.0f);
+        nextY += 105.0f;
+    }
+
+    // Mobile Touch Controls
+    drawMobileControls();
+
+#else
+    // Desktop HUD Layout
     float leftX = 60.0f;
     drawCard(leftX, boardY, 210.0f, 150.0f, "HOLD [C / LSHIFT]");
     if (m_holdPiece != PieceType::NONE) {
@@ -518,7 +748,6 @@ void Game::drawHUD() {
         Tetromino::drawPreview(m_window, m_holdPiece, leftX + 105.0f, boardY + 88.0f, 26.0f, holdAlpha);
     }
 
-    // LEFT PANEL: LEVEL & LINES CARD
     drawCard(leftX, boardY + 170.0f, 210.0f, 150.0f, "STATISTICS");
     renderText("LEVEL", leftX + 16.0f, boardY + 204.0f, 13, Config::TEXT_MUTED, false, true);
     renderText(std::to_string(m_level), leftX + 16.0f, boardY + 220.0f, 28, Config::ACCENT_CYAN, false, true);
@@ -526,7 +755,6 @@ void Game::drawHUD() {
     renderText("LINES CLEARED", leftX + 16.0f, boardY + 258.0f, 13, Config::TEXT_MUTED, false, true);
     renderText(std::to_string(m_linesCleared), leftX + 16.0f, boardY + 274.0f, 28, Config::TEXT_PRIMARY, false, true);
 
-    // LEFT PANEL: CONTROLS LEGEND
     drawCard(leftX, boardY + 340.0f, 210.0f, 300.0f, "CONTROLS");
     float cy = boardY + 372.0f;
     float rowH = 26.0f;
@@ -545,152 +773,141 @@ void Game::drawHUD() {
     drawControlRow("R", "Restart Game");
     drawControlRow("M", "Toggle Sound");
 
-    // RIGHT PANEL: NEXT PIECES
     float rightX = boardX + Config::BOARD_WIDTH * blockSize + 50.0f;
     drawCard(rightX, boardY, 210.0f, 290.0f, "NEXT PIECES");
-    // Show top 3 upcoming pieces
     float nextY = boardY + 68.0f;
     for (int i = 0; i < 3; ++i) {
         PieceType p = m_bag.peek(i);
-        Tetromino::drawPreview(m_window, p, rightX + 105.0f, nextY, (i == 0) ? 26.0f : 20.0f, (i == 0) ? 1.0f : 0.8f);
-        nextY += (i == 0) ? 80.0f : 70.0f;
+        Tetromino::drawPreview(m_window, p, rightX + 105.0f, nextY, 24.0f, 1.0f);
+        nextY += 76.0f;
     }
 
-    // RIGHT PANEL: SCORE & HIGH SCORE
-    drawCard(rightX, boardY + 310.0f, 210.0f, 170.0f, "SCORE");
-    renderText("CURRENT SCORE", rightX + 16.0f, boardY + 344.0f, 13, Config::TEXT_MUTED, false, true);
-    renderText(std::to_string(m_displayScore), rightX + 16.0f, boardY + 360.0f, 28, Config::COLOR_O, false, true);
+    drawCard(rightX, boardY + 310.0f, 210.0f, 150.0f, "SCORE");
+    renderText("CURRENT", rightX + 16.0f, boardY + 344.0f, 13, Config::TEXT_MUTED, false, true);
+    renderText(std::to_string(m_displayScore), rightX + 16.0f, boardY + 360.0f, 30, Config::ACCENT_CYAN, false, true);
 
     renderText("HIGH SCORE", rightX + 16.0f, boardY + 404.0f, 13, Config::TEXT_MUTED, false, true);
-    renderText(std::to_string(std::max(m_highScore, m_score)), rightX + 16.0f, boardY + 420.0f, 26, Config::ACCENT_VIOLET, false, true);
-
-    // Audio Mute Indicator at bottom right
-    if (m_sounds.isMuted()) {
-        renderText("[AUDIO MUTED]", rightX + 105.0f, boardY + 500.0f, 13, Config::COLOR_Z, true, true);
-    }
-
-    // Celebratory TETRIS 4-Line Clear Banner
-    if (m_tetrisBannerTimer > 0.0f) {
-        float alpha = std::clamp(m_tetrisBannerTimer / 1.35f, 0.0f, 1.0f);
-        sf::Uint8 a = static_cast<sf::Uint8>(255 * alpha);
-
-        float bannerY = boardY + Config::BOARD_HEIGHT * blockSize * 0.42f;
-        sf::RectangleShape banner(sf::Vector2f(Config::BOARD_WIDTH * blockSize, 60.0f));
-        banner.setPosition(boardX, bannerY - 30.0f);
-        banner.setFillColor(sf::Color(10, 14, 25, static_cast<sf::Uint8>(210 * alpha)));
-        banner.setOutlineThickness(2.0f);
-        banner.setOutlineColor(sf::Color(0, 240, 255, a));
-        m_window.draw(banner);
-
-        renderText("TETRIS! +800", boardX + (Config::BOARD_WIDTH * blockSize) / 2.0f, bannerY, 32, 
-                   sf::Color(0, 240, 255, a), true, true);
-    }
+    renderText(std::to_string(m_highScore), rightX + 16.0f, boardY + 420.0f, 24, sf::Color(255, 215, 0), false, true);
+#endif
 }
 
 void Game::drawStartScreen() {
-    // Translucent dark gradient overlay
-    sf::RectangleShape overlay(sf::Vector2f(Config::WINDOW_WIDTH, Config::WINDOW_HEIGHT));
-    overlay.setFillColor(sf::Color(11, 14, 23, 235));
-    m_window.draw(overlay);
+    float cx = m_window.getView().getSize().x / 2.0f;
+    float cy = m_window.getView().getSize().y / 2.0f;
 
-    float cx = Config::WINDOW_WIDTH / 2.0f;
-    float cy = Config::WINDOW_HEIGHT / 2.0f;
+    renderText("CYBERPUNK", cx, cy - 140.0f, 54, Config::ACCENT_CYAN, true, true);
+    renderText("T E T R I S", cx, cy - 70.0f, 44, Config::TEXT_PRIMARY, true, true);
+    renderText("NEON ARCADE // SFML 2.6.2", cx, cy - 15.0f, 16, Config::ACCENT_VIOLET, true, false);
 
-    // Glowing Logo Title
-    renderText("CYBERPUNK", cx, cy - 130.0f, 22, Config::ACCENT_CYAN, true, true);
-    renderText("T E T R I S", cx, cy - 75.0f, 62, Config::COLOR_O, true, true);
-    renderText("NEON ARCADE EDITION", cx, cy - 15.0f, 16, Config::TEXT_MUTED, true, true);
+#ifdef __ANDROID__
+    renderText("TAP ANYWHERE TO START", cx, cy + 90.0f, 24, Config::COLOR_S, true, true);
+#else
+    renderText("PRESS SPACE OR ENTER TO START", cx, cy + 90.0f, 20, Config::COLOR_S, true, true);
+#endif
 
-    // High score banner
-    std::string hsStr = "HIGH SCORE: " + std::to_string(m_highScore);
-    renderText(hsStr, cx, cy + 45.0f, 20, Config::ACCENT_VIOLET, true, true);
-
-    // Pulsing Start Prompt
-    renderText("PRESS [SPACE] OR [ENTER] TO START", cx, cy + 120.0f, 22, Config::TEXT_PRIMARY, true, true);
-    renderText("P: Pause  |  M: Mute Audio  |  C: Hold Piece", cx, cy + 175.0f, 14, Config::TEXT_MUTED, true, false);
+    if (m_highScore > 0) {
+        renderText("RECORD HIGH SCORE: " + std::to_string(m_highScore), cx, cy + 160.0f, 16, sf::Color(255, 215, 0), true, true);
+    }
 }
 
 void Game::drawPauseScreen() {
-    sf::RectangleShape overlay(sf::Vector2f(Config::WINDOW_WIDTH, Config::WINDOW_HEIGHT));
-    overlay.setFillColor(sf::Color(11, 14, 23, 200));
-    m_window.draw(overlay);
+    float cx = m_window.getView().getSize().x / 2.0f;
+    float cy = m_window.getView().getSize().y / 2.0f;
 
-    float cx = Config::WINDOW_WIDTH / 2.0f;
-    float cy = Config::WINDOW_HEIGHT / 2.0f;
+    sf::RectangleShape dim(m_window.getView().getSize());
+    dim.setFillColor(sf::Color(11, 14, 23, 210));
+    m_window.draw(dim);
 
-    drawCard(cx - 180.0f, cy - 110.0f, 360.0f, 220.0f);
-    renderText("PAUSED", cx, cy - 45.0f, 44, Config::ACCENT_CYAN, true, true);
-    renderText("PRESS [P] TO RESUME", cx, cy + 25.0f, 20, Config::TEXT_PRIMARY, true, true);
-    renderText("PRESS [R] TO RESTART", cx, cy + 65.0f, 15, Config::TEXT_MUTED, true, false);
+    renderText("GAME PAUSED", cx, cy - 40.0f, 42, Config::TEXT_PRIMARY, true, true);
+#ifdef __ANDROID__
+    renderText("TAP ANYWHERE TO RESUME", cx, cy + 30.0f, 20, Config::ACCENT_CYAN, true, false);
+#else
+    renderText("PRESS P TO RESUME", cx, cy + 30.0f, 18, Config::ACCENT_CYAN, true, false);
+#endif
 }
 
 void Game::drawGameOverScreen() {
-    sf::RectangleShape overlay(sf::Vector2f(Config::WINDOW_WIDTH, Config::WINDOW_HEIGHT));
-    overlay.setFillColor(sf::Color(20, 8, 14, 215));
-    m_window.draw(overlay);
+    float cx = m_window.getView().getSize().x / 2.0f;
+    float cy = m_window.getView().getSize().y / 2.0f;
 
-    float cx = Config::WINDOW_WIDTH / 2.0f;
-    float cy = Config::WINDOW_HEIGHT / 2.0f;
+    sf::RectangleShape dim(m_window.getView().getSize());
+    dim.setFillColor(sf::Color(11, 14, 23, 230));
+    m_window.draw(dim);
 
-    drawCard(cx - 210.0f, cy - 160.0f, 420.0f, 320.0f);
+    renderText("GAME OVER", cx, cy - 110.0f, 50, Config::COLOR_Z, true, true);
 
-    renderText("GAME OVER", cx, cy - 105.0f, 46, Config::COLOR_Z, true, true);
-
-    renderText("FINAL SCORE", cx, cy - 40.0f, 15, Config::TEXT_MUTED, true, true);
-    renderText(std::to_string(m_score), cx, cy - 12.0f, 34, Config::COLOR_O, true, true);
+    renderText("FINAL SCORE", cx, cy - 35.0f, 14, Config::TEXT_MUTED, true, true);
+    renderText(std::to_string(m_score), cx, cy - 5.0f, 40, Config::ACCENT_CYAN, true, true);
 
     if (m_score >= m_highScore && m_score > 0) {
-        renderText("* NEW HIGH SCORE! *", cx, cy + 35.0f, 18, Config::ACCENT_CYAN, true, true);
-    } else {
-        renderText("HIGH SCORE: " + std::to_string(m_highScore), cx, cy + 35.0f, 16, Config::ACCENT_VIOLET, true, true);
+        renderText("★ NEW HIGH SCORE! ★", cx, cy + 45.0f, 18, sf::Color(255, 215, 0), true, true);
     }
 
-    renderText("PRESS [R] OR [SPACE] TO RESTART", cx, cy + 95.0f, 18, Config::TEXT_PRIMARY, true, true);
+#ifdef __ANDROID__
+    renderText("TAP ANYWHERE TO REPLAY", cx, cy + 110.0f, 22, Config::COLOR_S, true, true);
+#else
+    renderText("PRESS R OR SPACE TO RESTART", cx, cy + 110.0f, 18, Config::COLOR_S, true, true);
+#endif
 }
 
 void Game::render() {
     m_window.clear(Config::BG_COLOR);
 
-    // Apply screen shake offset from explosions/drops
+    // Camera screen shake offset
     sf::Vector2f shake = m_particles.getShakeOffset();
-    sf::View view = m_window.getDefaultView();
-    view.setCenter(view.getCenter() + shake);
+    sf::View view = m_window.getView();
+    view.move(shake);
     m_window.setView(view);
 
-    // 1. Draw Board
-    m_board.draw(m_window, Config::BOARD_OFFSET_X, Config::BOARD_OFFSET_Y, Config::BLOCK_SIZE);
+    if (m_state == GameState::START_SCREEN) {
+        drawStartScreen();
+    } else {
+        // Draw Matrix & HUD
+        drawHUD();
+        m_board.draw(m_window, getBoardOffsetX(), getBoardOffsetY(), Config::BLOCK_SIZE);
 
-    // 2. Draw Ghost Piece and Active Piece during gameplay
-    if (m_state == GameState::PLAYING || m_state == GameState::PAUSED) {
-        if (m_currentPiece.getType() != PieceType::NONE && !m_board.isAnimatingLineClear()) {
-            // Draw Ghost Piece
-            Point ghostPos = m_board.calculateGhostPosition(m_currentPiece);
+        // Draw Ghost & Active piece
+        if (m_state == GameState::PLAYING && !m_board.isAnimatingLineClear() && 
+            m_currentPiece.getType() != PieceType::NONE) 
+        {
+            // Ghost Piece
             Tetromino ghostPiece = m_currentPiece;
-            ghostPiece.setPosition(ghostPos);
-            ghostPiece.draw(m_window, Config::BOARD_OFFSET_X, Config::BOARD_OFFSET_Y, Config::BLOCK_SIZE, 0.7f, true);
+            ghostPiece.setPosition(m_board.calculateGhostPosition(m_currentPiece));
+            ghostPiece.draw(m_window, getBoardOffsetX(), getBoardOffsetY(), Config::BLOCK_SIZE, 0.7f, true);
 
-            // Draw Active Piece
-            m_currentPiece.draw(m_window, Config::BOARD_OFFSET_X, Config::BOARD_OFFSET_Y, Config::BLOCK_SIZE, 1.0f, false);
+            // Active Falling Piece
+            m_currentPiece.draw(m_window, getBoardOffsetX(), getBoardOffsetY(), Config::BLOCK_SIZE, 1.0f, false);
+        }
+
+        // Particle sparks
+        m_particles.draw(m_window);
+
+        // Tetris 4-Line Clear Celebration Banner
+        if (m_tetrisBannerTimer > 0.0f) {
+            float bannerX = getBoardOffsetX() + 160.0f;
+            float bannerY = getBoardOffsetY() + 300.0f;
+
+            sf::RectangleShape bannerBox(sf::Vector2f(280.0f, 54.0f));
+            bannerBox.setOrigin(140.0f, 27.0f);
+            bannerBox.setPosition(bannerX, bannerY);
+            bannerBox.setFillColor(sf::Color(18, 24, 40, 240));
+            bannerBox.setOutlineThickness(2.0f);
+            bannerBox.setOutlineColor(Config::ACCENT_CYAN);
+            m_window.draw(bannerBox);
+
+            renderText("T E T R I S !", bannerX, bannerY, 26, Config::ACCENT_CYAN, true, true);
+        }
+
+        if (m_state == GameState::PAUSED) {
+            drawPauseScreen();
+        } else if (m_state == GameState::GAME_OVER) {
+            drawGameOverScreen();
         }
     }
 
-    // 3. Draw Particles
-    m_particles.draw(m_window);
-
-    // Reset view for static HUD and overlays
-    m_window.setView(m_window.getDefaultView());
-
-    // 4. Draw HUD
-    drawHUD();
-
-    // 5. Draw State Overlays
-    if (m_state == GameState::START_SCREEN) {
-        drawStartScreen();
-    } else if (m_state == GameState::PAUSED) {
-        drawPauseScreen();
-    } else if (m_state == GameState::GAME_OVER) {
-        drawGameOverScreen();
-    }
+    // Reset view offset after shake
+    view.move(-shake);
+    m_window.setView(view);
 
     m_window.display();
 }
@@ -699,7 +916,6 @@ void Game::run() {
     sf::Clock clock;
     while (m_window.isOpen()) {
         float dt = clock.restart().asSeconds();
-        // Prevent huge delta spikes on lag
         dt = std::min(dt, 0.1f);
 
         processEvents();

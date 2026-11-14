@@ -215,6 +215,27 @@ cmake --build build -j$(nproc)
 ./build/Tetris
 ```
 
+### 📱 Android Mobile Edition (Production APK)
+
+Ready-to-install, verified, crash-free APK targeting **Android 9.0 (API 21) through Android 14/15 (API 34)** with native 64-bit `arm64-v8a` performance:
+
+* 📦 **Direct APK:** [`android/Tetris.apk`](android/Tetris.apk)
+* ⚡ **ABIs Included:** `arm64-v8a` (modern 64-bit Snapdragon/Tensor/Dimensity), `armeabi-v7a`, `x86_64` (emulator)
+* 🎮 **Controls:** Responsive on-screen Neon Touch D-Pad (Left, Right, Rotate CW/CCW, Soft Drop, Hard Drop, Hold, Pause, Restart, Mute)
+* 📐 **Display:** Adaptive portrait 960×1600 `sf::View` with letterbox aspect-ratio preservation
+* 🛡️ **Hardened Packaging:** 
+  - `resources.arsc` stored uncompressed (`ZIP_STORED`) on a 4-byte boundary
+  - Full 4-byte / 16-KB page-alignment via `zipalign`
+  - Signed with dedicated release keystore via **APK Signature Schemes v1, v2, and v3**
+
+```powershell
+# Rebuild & re-sign APK from source anytime:
+.\build_and_sign.ps1
+
+# Run the 5-step pre-delivery verification suite:
+.\verify_apk.ps1
+```
+
 ---
 
 ## ⚙️ Cyberdeck Tweaks & Customization

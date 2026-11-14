@@ -37,6 +37,13 @@ private:
     // Fall timing
     float getFallInterval() const;
 
+    // View & Layout Helpers
+    void updateView();
+    float getBoardOffsetX() const;
+    float getBoardOffsetY() const;
+    void handleTouch(int pixelX, int pixelY, bool isDown, unsigned int finger = 0);
+    void drawMobileControls();
+
     // Drawing Helpers
     void drawHUD();
     void drawStartScreen();
@@ -83,4 +90,16 @@ private:
     // Fonts
     sf::Font m_font;
     bool m_fontLoaded;
+
+    // Touch button geometries (for mobile layout)
+    sf::FloatRect m_btnHold;
+    sf::FloatRect m_btnPause;
+    sf::FloatRect m_btnRotCCW;
+    sf::FloatRect m_btnRotCW;
+    sf::FloatRect m_btnLeft;
+    sf::FloatRect m_btnRight;
+    sf::FloatRect m_btnHardDrop;
+    sf::FloatRect m_btnSoftDrop;
+    sf::FloatRect m_btnMute;
+    sf::FloatRect m_btnRestart;
 };

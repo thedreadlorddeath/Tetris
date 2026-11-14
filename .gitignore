@@ -35,6 +35,16 @@ _deps/
 # Game runtime data
 highscore.txt
 *.log
+hs_err_*.log
+
+# Android Build artifacts
+build-android-*/
+build-apk/
+.gradle/
+local.properties
+
+# Root redundant apk
+/Tetris.apk
 
 # OS generated files
 Thumbs.db
