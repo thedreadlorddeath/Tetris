@@ -11,7 +11,6 @@ public class MainActivity extends NativeActivity {
         System.loadLibrary("sfml-window");
         System.loadLibrary("sfml-graphics");
         System.loadLibrary("sfml-audio");
-        System.loadLibrary("sfml-activity");
         System.loadLibrary("Tetris");
     }
 

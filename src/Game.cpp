@@ -4,6 +4,9 @@
 #include <iostream>
 #include <algorithm>
 #include <sstream>
+#ifdef __ANDROID__
+#include <sys/stat.h>
+#endif
 
 Game::Game()
     : m_holdPiece(PieceType::NONE),
@@ -52,7 +55,9 @@ Game::Game()
     // Font Candidate loading (Android uses AAssetManager "font.ttf" inside APK)
 #ifdef __ANDROID__
     const std::vector<std::string> fontCandidates = {
-        "font.ttf"
+        "font.ttf",
+        "assets/font.ttf",
+        "/system/fonts/Roboto-Regular.ttf"
     };
 #else
     const std::vector<std::string> fontCandidates = {
@@ -124,30 +129,39 @@ void Game::updateView() {
 }
 
 void Game::loadHighScore() {
+    try {
 #ifdef __ANDROID__
-    const char* path = "/data/data/com.thedreadlorddeath.tetris/files/highscore.txt";
+        mkdir("/data/data/com.thedreadlorddeath.tetris/files", 0755);
+        const char* path = "/data/data/com.thedreadlorddeath.tetris/files/highscore.txt";
 #else
-    const char* path = "highscore.txt";
+        const char* path = "highscore.txt";
 #endif
-    std::ifstream file(path);
-    if (file.is_open()) {
-        file >> m_highScore;
-        file.close();
-    } else {
+        std::ifstream file(path);
+        if (file.is_open()) {
+            file >> m_highScore;
+            file.close();
+        } else {
+            m_highScore = 0;
+        }
+    } catch (...) {
         m_highScore = 0;
     }
 }
 
 void Game::saveHighScore() {
+    try {
 #ifdef __ANDROID__
-    const char* path = "/data/data/com.thedreadlorddeath.tetris/files/highscore.txt";
+        mkdir("/data/data/com.thedreadlorddeath.tetris/files", 0755);
+        const char* path = "/data/data/com.thedreadlorddeath.tetris/files/highscore.txt";
 #else
-    const char* path = "highscore.txt";
+        const char* path = "highscore.txt";
 #endif
-    std::ofstream file(path);
-    if (file.is_open()) {
-        file << m_highScore;
-        file.close();
+        std::ofstream file(path);
+        if (file.is_open()) {
+            file << m_highScore;
+            file.close();
+        }
+    } catch (...) {
     }
 }
 

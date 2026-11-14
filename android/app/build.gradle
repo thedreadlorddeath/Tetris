@@ -39,6 +39,10 @@ android {
         }
     }
 
+    aaptOptions {
+        noCompress 'ttf', 'ogg', 'wav', 'arsc'
+    }
+
     packagingOptions {
         resources {
             excludes += [

@@ -17,46 +17,57 @@ namespace {
 SoundManager::SoundManager()
     : m_poolIndex(0), m_muted(false)
 {
-    m_soundPool.resize(POOL_SIZE);
-    initBuffers();
+    try {
+        m_soundPool.resize(POOL_SIZE);
+        initBuffers();
+    } catch (...) {
+        m_muted = true;
+    }
 }
 
 void SoundManager::initBuffers() {
-    auto samplesMove = generateMoveSound();
-    m_bufMove.loadFromSamples(samplesMove.data(), samplesMove.size(), 1, SAMPLE_RATE);
+    try {
+        auto samplesMove = generateMoveSound();
+        m_bufMove.loadFromSamples(samplesMove.data(), samplesMove.size(), 1, SAMPLE_RATE);
 
-    auto samplesRotate = generateRotateSound();
-    m_bufRotate.loadFromSamples(samplesRotate.data(), samplesRotate.size(), 1, SAMPLE_RATE);
+        auto samplesRotate = generateRotateSound();
+        m_bufRotate.loadFromSamples(samplesRotate.data(), samplesRotate.size(), 1, SAMPLE_RATE);
 
-    auto samplesHardDrop = generateHardDropSound();
-    m_bufHardDrop.loadFromSamples(samplesHardDrop.data(), samplesHardDrop.size(), 1, SAMPLE_RATE);
+        auto samplesHardDrop = generateHardDropSound();
+        m_bufHardDrop.loadFromSamples(samplesHardDrop.data(), samplesHardDrop.size(), 1, SAMPLE_RATE);
 
-    auto samplesHold = generateHoldSound();
-    m_bufHold.loadFromSamples(samplesHold.data(), samplesHold.size(), 1, SAMPLE_RATE);
+        auto samplesHold = generateHoldSound();
+        m_bufHold.loadFromSamples(samplesHold.data(), samplesHold.size(), 1, SAMPLE_RATE);
 
-    auto samplesLineClear = generateLineClearSound();
-    m_bufLineClear.loadFromSamples(samplesLineClear.data(), samplesLineClear.size(), 1, SAMPLE_RATE);
+        auto samplesLineClear = generateLineClearSound();
+        m_bufLineClear.loadFromSamples(samplesLineClear.data(), samplesLineClear.size(), 1, SAMPLE_RATE);
 
-    auto samplesTetris = generateTetrisSound();
-    m_bufTetris.loadFromSamples(samplesTetris.data(), samplesTetris.size(), 1, SAMPLE_RATE);
+        auto samplesTetris = generateTetrisSound();
+        m_bufTetris.loadFromSamples(samplesTetris.data(), samplesTetris.size(), 1, SAMPLE_RATE);
 
-    auto samplesGameOver = generateGameOverSound();
-    m_bufGameOver.loadFromSamples(samplesGameOver.data(), samplesGameOver.size(), 1, SAMPLE_RATE);
+        auto samplesGameOver = generateGameOverSound();
+        m_bufGameOver.loadFromSamples(samplesGameOver.data(), samplesGameOver.size(), 1, SAMPLE_RATE);
 
-    auto samplesLevelUp = generateLevelUpSound();
-    m_bufLevelUp.loadFromSamples(samplesLevelUp.data(), samplesLevelUp.size(), 1, SAMPLE_RATE);
+        auto samplesLevelUp = generateLevelUpSound();
+        m_bufLevelUp.loadFromSamples(samplesLevelUp.data(), samplesLevelUp.size(), 1, SAMPLE_RATE);
+    } catch (...) {
+        m_muted = true;
+    }
 }
 
 void SoundManager::playSound(const sf::SoundBuffer& buffer, float pitch, float volume) {
     if (m_muted) return;
 
-    sf::Sound& sound = m_soundPool[m_poolIndex];
-    m_poolIndex = (m_poolIndex + 1) % POOL_SIZE;
+    try {
+        sf::Sound& sound = m_soundPool[m_poolIndex];
+        m_poolIndex = (m_poolIndex + 1) % POOL_SIZE;
 
-    sound.setBuffer(buffer);
-    sound.setPitch(pitch);
-    sound.setVolume(volume);
-    sound.play();
+        sound.setBuffer(buffer);
+        sound.setPitch(pitch);
+        sound.setVolume(volume);
+        sound.play();
+    } catch (...) {
+    }
 }
 
 void SoundManager::playMove() {
