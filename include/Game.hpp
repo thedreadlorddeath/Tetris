@@ -7,6 +7,31 @@
 #include "SoundManager.hpp"
 #include <SFML/Graphics.hpp>
 #include <string>
+#include <map>
+
+enum class VirtualButton {
+    NONE = 0,
+    LEFT,
+    RIGHT,
+    SOFT_DROP,
+    HARD_DROP,
+    ROTATE_CW,
+    ROTATE_CCW,
+    HOLD,
+    PAUSE,
+    RESTART,
+    MUTE
+};
+
+struct TouchPoint {
+    sf::Vector2f startCoords;
+    sf::Vector2f currentCoords;
+    VirtualButton boundButton = VirtualButton::NONE;
+    bool isBoardGesture = false;
+    float dragAccumulatorX = 0.0f;
+    float totalDragY = 0.0f;
+    sf::Clock timer;
+};
 
 class Game {
 public:
@@ -42,6 +67,11 @@ private:
     float getBoardOffsetX() const;
     float getBoardOffsetY() const;
     void handleTouch(int pixelX, int pixelY, bool isDown, unsigned int finger = 0);
+    void handleTouchDown(int pixelX, int pixelY, unsigned int finger);
+    void handleTouchMove(int pixelX, int pixelY, unsigned int finger);
+    void handleTouchUp(int pixelX, int pixelY, unsigned int finger);
+    bool isButtonPressed(VirtualButton btn) const;
+    VirtualButton getButtonAt(sf::Vector2f pos) const;
     void drawMobileControls();
 
     // Drawing Helpers
@@ -102,4 +132,8 @@ private:
     sf::FloatRect m_btnSoftDrop;
     sf::FloatRect m_btnMute;
     sf::FloatRect m_btnRestart;
+    sf::FloatRect m_boardTouchArea;
+
+    // Multi-touch tracking
+    std::map<unsigned int, TouchPoint> m_activeTouches;
 };

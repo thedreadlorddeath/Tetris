@@ -29,19 +29,25 @@ Game::Game()
       m_tetrisBannerTimer(0.0f),
       m_fontLoaded(false)
 {
-    // Setup touch button geometry
-    m_btnHold      = sf::FloatRect(60.0f,  930.0f, 180.0f, 80.0f);
-    m_btnRotCCW    = sf::FloatRect(270.0f, 930.0f, 180.0f, 80.0f);
-    m_btnRotCW     = sf::FloatRect(510.0f, 930.0f, 180.0f, 80.0f);
-    m_btnPause     = sf::FloatRect(720.0f, 930.0f, 180.0f, 80.0f);
+    // Setup touch button geometry (960 x 1600 logical portrait layout)
+    // Board spans X: 320 to 640, Y: 210 to 850
+    m_boardTouchArea = sf::FloatRect(320.0f, 210.0f, 320.0f, 640.0f);
 
-    m_btnLeft      = sf::FloatRect(60.0f,  1040.0f, 220.0f, 140.0f);
-    m_btnHardDrop  = sf::FloatRect(310.0f, 1040.0f, 340.0f, 140.0f);
-    m_btnRight     = sf::FloatRect(680.0f, 1040.0f, 220.0f, 140.0f);
+    // Row 1: Top Utility Pills (Y: 875 - 945)
+    m_btnHold      = sf::FloatRect(45.0f,  875.0f, 200.0f, 70.0f);
+    m_btnPause     = sf::FloatRect(270.0f, 875.0f, 190.0f, 70.0f);
+    m_btnRestart   = sf::FloatRect(495.0f, 875.0f, 190.0f, 70.0f);
+    m_btnMute      = sf::FloatRect(715.0f, 875.0f, 200.0f, 70.0f);
 
-    m_btnMute      = sf::FloatRect(60.0f,  1210.0f, 220.0f, 130.0f);
-    m_btnSoftDrop  = sf::FloatRect(310.0f, 1210.0f, 340.0f, 130.0f);
-    m_btnRestart   = sf::FloatRect(680.0f, 1210.0f, 220.0f, 130.0f);
+    // Row 2: Directional Movement & Rotations (Y: 970 - 1235)
+    m_btnLeft      = sf::FloatRect(45.0f,  970.0f, 200.0f, 265.0f);
+    m_btnRight     = sf::FloatRect(265.0f, 970.0f, 200.0f, 265.0f);
+    m_btnRotCCW    = sf::FloatRect(495.0f, 970.0f, 200.0f, 265.0f);
+    m_btnRotCW     = sf::FloatRect(715.0f, 970.0f, 200.0f, 265.0f);
+
+    // Row 3: Soft Drop & Hard Drop Slam (Y: 1265 - 1540)
+    m_btnSoftDrop  = sf::FloatRect(45.0f,  1265.0f, 420.0f, 275.0f);
+    m_btnHardDrop  = sf::FloatRect(495.0f, 1265.0f, 420.0f, 275.0f);
 
 #ifdef __ANDROID__
     m_window.create(sf::VideoMode::getDesktopMode(), "TETRIS // NEON ARCADE");
@@ -89,7 +95,7 @@ float Game::getBoardOffsetX() const {
 
 float Game::getBoardOffsetY() const {
 #ifdef __ANDROID__
-    return 240.0f;
+    return 210.0f;
 #else
     return Config::BOARD_OFFSET_Y;
 #endif
@@ -363,65 +369,187 @@ void Game::checkLineClears() {
     }
 }
 
+VirtualButton Game::getButtonAt(sf::Vector2f pos) const {
+    if (m_btnLeft.contains(pos)) return VirtualButton::LEFT;
+    if (m_btnRight.contains(pos)) return VirtualButton::RIGHT;
+    if (m_btnSoftDrop.contains(pos)) return VirtualButton::SOFT_DROP;
+    if (m_btnHardDrop.contains(pos)) return VirtualButton::HARD_DROP;
+    if (m_btnRotCW.contains(pos)) return VirtualButton::ROTATE_CW;
+    if (m_btnRotCCW.contains(pos)) return VirtualButton::ROTATE_CCW;
+    if (m_btnHold.contains(pos)) return VirtualButton::HOLD;
+    if (m_btnPause.contains(pos)) return VirtualButton::PAUSE;
+    if (m_btnRestart.contains(pos)) return VirtualButton::RESTART;
+    if (m_btnMute.contains(pos)) return VirtualButton::MUTE;
+    return VirtualButton::NONE;
+}
+
+bool Game::isButtonPressed(VirtualButton btn) const {
+    for (const auto& kv : m_activeTouches) {
+        if (kv.second.boundButton == btn) return true;
+    }
+    return false;
+}
+
 void Game::handleTouch(int pixelX, int pixelY, bool isDown, unsigned int finger) {
-    (void)finger;
+    if (isDown) {
+        handleTouchDown(pixelX, pixelY, finger);
+    } else {
+        handleTouchUp(pixelX, pixelY, finger);
+    }
+}
+
+void Game::handleTouchDown(int pixelX, int pixelY, unsigned int finger) {
     sf::Vector2f pos = m_window.mapPixelToCoords(sf::Vector2i(pixelX, pixelY));
 
     if (m_state == GameState::START_SCREEN || m_state == GameState::GAME_OVER) {
-        if (isDown) {
-            startNewGame();
-        }
+        startNewGame();
         return;
     }
 
     if (m_state == GameState::PAUSED) {
-        if (isDown) {
-            m_state = GameState::PLAYING;
-        }
+        m_state = GameState::PLAYING;
         return;
     }
 
     if (m_state == GameState::PLAYING) {
-        if (isDown) {
-            if (m_btnHold.contains(pos)) {
-                holdCurrentPiece();
-            } else if (m_btnPause.contains(pos)) {
-                m_state = GameState::PAUSED;
-            } else if (m_btnRotCCW.contains(pos)) {
-                tryRotate(false);
-            } else if (m_btnRotCW.contains(pos)) {
-                tryRotate(true);
-            } else if (m_btnLeft.contains(pos)) {
-                m_moveDir = -1;
-                m_dasTimer = 0.0f;
-                m_arrTimer = 0.0f;
-                tryMove(-1, 0);
-            } else if (m_btnRight.contains(pos)) {
-                m_moveDir = 1;
-                m_dasTimer = 0.0f;
-                m_arrTimer = 0.0f;
-                tryMove(1, 0);
-            } else if (m_btnHardDrop.contains(pos)) {
-                hardDrop();
-            } else if (m_btnSoftDrop.contains(pos)) {
-                m_softDropActive = true;
-                m_softDropTimer = 0.0f;
-                if (tryMove(0, 1)) {
-                    m_score += 1;
-                    m_fallTimer = 0.0f;
-                }
-            } else if (m_btnMute.contains(pos)) {
-                m_sounds.toggleMute();
-            } else if (m_btnRestart.contains(pos)) {
-                startNewGame();
+        TouchPoint tp;
+        tp.startCoords = pos;
+        tp.currentCoords = pos;
+        tp.timer.restart();
+
+        VirtualButton btn = getButtonAt(pos);
+        tp.boundButton = btn;
+
+        if (btn != VirtualButton::NONE) {
+            switch (btn) {
+                case VirtualButton::LEFT:
+                    m_moveDir = -1;
+                    m_dasTimer = 0.0f;
+                    m_arrTimer = 0.0f;
+                    tryMove(-1, 0);
+                    break;
+                case VirtualButton::RIGHT:
+                    m_moveDir = 1;
+                    m_dasTimer = 0.0f;
+                    m_arrTimer = 0.0f;
+                    tryMove(1, 0);
+                    break;
+                case VirtualButton::SOFT_DROP:
+                    m_softDropActive = true;
+                    m_softDropTimer = 0.0f;
+                    if (tryMove(0, 1)) {
+                        m_score += 1;
+                        m_fallTimer = 0.0f;
+                    }
+                    break;
+                case VirtualButton::HARD_DROP:
+                    hardDrop();
+                    break;
+                case VirtualButton::ROTATE_CW:
+                    tryRotate(true);
+                    break;
+                case VirtualButton::ROTATE_CCW:
+                    tryRotate(false);
+                    break;
+                case VirtualButton::HOLD:
+                    holdCurrentPiece();
+                    break;
+                case VirtualButton::PAUSE:
+                    m_state = GameState::PAUSED;
+                    break;
+                case VirtualButton::RESTART:
+                    startNewGame();
+                    break;
+                case VirtualButton::MUTE:
+                    m_sounds.toggleMute();
+                    break;
+                default:
+                    break;
             }
-        } else {
-            if (m_btnLeft.contains(pos) || m_btnRight.contains(pos)) {
+        } else if (m_boardTouchArea.contains(pos)) {
+            tp.isBoardGesture = true;
+        }
+
+        m_activeTouches[finger] = tp;
+    }
+}
+
+void Game::handleTouchMove(int pixelX, int pixelY, unsigned int finger) {
+    auto it = m_activeTouches.find(finger);
+    if (it == m_activeTouches.end()) return;
+
+    sf::Vector2f pos = m_window.mapPixelToCoords(sf::Vector2i(pixelX, pixelY));
+    sf::Vector2f delta = pos - it->second.currentCoords;
+    it->second.currentCoords = pos;
+    it->second.totalDragY += delta.y;
+
+    if (it->second.isBoardGesture && m_state == GameState::PLAYING) {
+        it->second.dragAccumulatorX += delta.x;
+        constexpr float cellStep = 28.0f;
+        while (it->second.dragAccumulatorX >= cellStep) {
+            tryMove(1, 0);
+            it->second.dragAccumulatorX -= cellStep;
+        }
+        while (it->second.dragAccumulatorX <= -cellStep) {
+            tryMove(-1, 0);
+            it->second.dragAccumulatorX += cellStep;
+        }
+
+        if (delta.y > 22.0f) {
+            if (tryMove(0, 1)) {
+                m_score += 1;
+                m_fallTimer = 0.0f;
+            }
+        }
+    }
+}
+
+void Game::handleTouchUp(int pixelX, int pixelY, unsigned int finger) {
+    (void)pixelX; (void)pixelY;
+    auto it = m_activeTouches.find(finger);
+    if (it == m_activeTouches.end()) return;
+
+    TouchPoint tp = it->second;
+    m_activeTouches.erase(it);
+
+    if (m_state == GameState::PLAYING) {
+        if (tp.isBoardGesture) {
+            float elapsed = tp.timer.getElapsedTime().asSeconds();
+            sf::Vector2f totalDelta = tp.currentCoords - tp.startCoords;
+            float totalDist = std::sqrt(totalDelta.x * totalDelta.x + totalDelta.y * totalDelta.y);
+
+            // Flick down: Hard Drop
+            if (tp.totalDragY > 100.0f && elapsed < 0.35f) {
+                hardDrop();
+            }
+            // Quick tap on board: Rotate CW
+            else if (totalDist < 25.0f && elapsed < 0.25f) {
+                tryRotate(true);
+            }
+        }
+
+        bool stillHoldingLeft = false;
+        bool stillHoldingRight = false;
+        bool stillHoldingSoftDrop = false;
+
+        for (const auto& kv : m_activeTouches) {
+            if (kv.second.boundButton == VirtualButton::LEFT) stillHoldingLeft = true;
+            if (kv.second.boundButton == VirtualButton::RIGHT) stillHoldingRight = true;
+            if (kv.second.boundButton == VirtualButton::SOFT_DROP) stillHoldingSoftDrop = true;
+        }
+
+        if (tp.boundButton == VirtualButton::LEFT || tp.boundButton == VirtualButton::RIGHT) {
+            if (stillHoldingLeft) {
+                m_moveDir = -1;
+            } else if (stillHoldingRight) {
+                m_moveDir = 1;
+            } else {
                 m_moveDir = 0;
             }
-            if (m_btnSoftDrop.contains(pos)) {
-                m_softDropActive = false;
-            }
+        }
+
+        if (tp.boundButton == VirtualButton::SOFT_DROP && !stillHoldingSoftDrop) {
+            m_softDropActive = false;
         }
     }
 }
@@ -446,15 +574,21 @@ void Game::processEvents() {
 
 #ifdef __ANDROID__
         if (event.type == sf::Event::TouchBegan) {
-            handleTouch(event.touch.x, event.touch.y, true, event.touch.finger);
+            handleTouchDown(event.touch.x, event.touch.y, event.touch.finger);
+        } else if (event.type == sf::Event::TouchMoved) {
+            handleTouchMove(event.touch.x, event.touch.y, event.touch.finger);
         } else if (event.type == sf::Event::TouchEnded) {
-            handleTouch(event.touch.x, event.touch.y, false, event.touch.finger);
+            handleTouchUp(event.touch.x, event.touch.y, event.touch.finger);
         }
 #endif
         if (event.type == sf::Event::MouseButtonPressed) {
-            handleTouch(event.mouseButton.x, event.mouseButton.y, true, 0);
+            handleTouchDown(event.mouseButton.x, event.mouseButton.y, 0);
+        } else if (event.type == sf::Event::MouseMoved) {
+            if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
+                handleTouchMove(event.mouseMove.x, event.mouseMove.y, 0);
+            }
         } else if (event.type == sf::Event::MouseButtonReleased) {
-            handleTouch(event.mouseButton.x, event.mouseButton.y, false, 0);
+            handleTouchUp(event.mouseButton.x, event.mouseButton.y, 0);
         }
 
         if (event.type == sf::Event::KeyPressed) {
@@ -688,29 +822,74 @@ void Game::drawCard(float x, float y, float width, float height, const std::stri
 }
 
 void Game::drawMobileControls() {
-    auto drawBtn = [this](const sf::FloatRect& r, const std::string& label, sf::Color borderCol) {
+    auto drawButton = [this](VirtualButton btn, const sf::FloatRect& r, 
+                             const std::string& glyph, const std::string& subtext, 
+                             sf::Color themeColor, bool isPill = false) {
+        bool pressed = isButtonPressed(btn);
+
+        // Outer glow on press
+        if (pressed) {
+            sf::RectangleShape glow(sf::Vector2f(r.width + 12.0f, r.height + 12.0f));
+            glow.setPosition(r.left - 6.0f, r.top - 6.0f);
+            glow.setFillColor(sf::Color(themeColor.r, themeColor.g, themeColor.b, 70));
+            m_window.draw(glow);
+        }
+
+        // Base box
         sf::RectangleShape box(sf::Vector2f(r.width, r.height));
         box.setPosition(r.left, r.top);
-        box.setFillColor(sf::Color(18, 24, 40, 220));
-        box.setOutlineThickness(2.0f);
-        box.setOutlineColor(borderCol);
+        if (pressed) {
+            box.setFillColor(sf::Color(std::min(255, static_cast<int>(themeColor.r * 0.4f + 25)), 
+                                       std::min(255, static_cast<int>(themeColor.g * 0.4f + 25)), 
+                                       std::min(255, static_cast<int>(themeColor.b * 0.4f + 25)), 245));
+            box.setOutlineThickness(3.5f);
+            box.setOutlineColor(sf::Color::White);
+        } else {
+            box.setFillColor(sf::Color(14, 18, 30, 225));
+            box.setOutlineThickness(2.0f);
+            box.setOutlineColor(themeColor);
+        }
         m_window.draw(box);
 
-        renderText(label, r.left + r.width / 2.0f, r.top + r.height / 2.0f, 20, sf::Color(235, 245, 255), true, true);
+        // Top glossy glass specular edge
+        sf::RectangleShape sheen(sf::Vector2f(r.width - 6.0f, 3.0f));
+        sheen.setPosition(r.left + 3.0f, r.top + 3.0f);
+        sheen.setFillColor(sf::Color(255, 255, 255, pressed ? 140 : 50));
+        m_window.draw(sheen);
+
+        // Texts
+        float centerX = r.left + r.width * 0.5f;
+        if (isPill) {
+            renderText(glyph + " " + subtext, centerX, r.top + r.height * 0.5f, 20, 
+                       pressed ? sf::Color::White : themeColor, true, true);
+        } else {
+            if (!subtext.empty()) {
+                float glyphY = r.top + r.height * 0.38f;
+                float subY = r.top + r.height * 0.78f;
+                renderText(glyph, centerX, glyphY, 48, pressed ? sf::Color::White : themeColor, true, true);
+                renderText(subtext, centerX, subY, 19, pressed ? sf::Color(255, 255, 255, 230) : Config::TEXT_MUTED, true, true);
+            } else {
+                renderText(glyph, centerX, r.top + r.height * 0.5f, 36, 
+                           pressed ? sf::Color::White : themeColor, true, true);
+            }
+        }
     };
 
-    drawBtn(m_btnHold, "HOLD", Config::ACCENT_CYAN);
-    drawBtn(m_btnRotCCW, "ROT L", Config::ACCENT_VIOLET);
-    drawBtn(m_btnRotCW, "ROT R", Config::ACCENT_VIOLET);
-    drawBtn(m_btnPause, "PAUSE", Config::PANEL_BORDER);
+    // Row 1: Top Utility Pills
+    drawButton(VirtualButton::HOLD,    m_btnHold,    "[*]", "HOLD",  Config::ACCENT_CYAN, true);
+    drawButton(VirtualButton::PAUSE,   m_btnPause,   "||",  "PAUSE", Config::PANEL_BORDER, true);
+    drawButton(VirtualButton::RESTART, m_btnRestart, "(R)", "RESET", sf::Color(255, 50, 80), true);
+    drawButton(VirtualButton::MUTE,    m_btnMute,    "~~",  "SOUND", Config::ACCENT_CYAN, true);
 
-    drawBtn(m_btnLeft, "< LEFT", Config::ACCENT_CYAN);
-    drawBtn(m_btnHardDrop, "HARD DROP", sf::Color(0, 240, 255));
-    drawBtn(m_btnRight, "RIGHT >", Config::ACCENT_CYAN);
+    // Row 2: Directional Movement (Left Thumb) & Rotations (Right Thumb)
+    drawButton(VirtualButton::LEFT,       m_btnLeft,   "<",     "LEFT",     Config::ACCENT_CYAN);
+    drawButton(VirtualButton::RIGHT,      m_btnRight,  ">",     "RIGHT",    Config::ACCENT_CYAN);
+    drawButton(VirtualButton::ROTATE_CCW, m_btnRotCCW, "ROT-L", "COUNTER",  Config::ACCENT_VIOLET);
+    drawButton(VirtualButton::ROTATE_CW,  m_btnRotCW,  "ROT-R", "CLOCK",    Config::ACCENT_VIOLET);
 
-    drawBtn(m_btnMute, "MUTE", Config::TEXT_MUTED);
-    drawBtn(m_btnSoftDrop, "SOFT DROP", sf::Color(50, 240, 80));
-    drawBtn(m_btnRestart, "RESTART", sf::Color(255, 45, 75));
+    // Row 3: Soft Drop (Left Thumb) & Hard Drop Slam (Right Thumb)
+    drawButton(VirtualButton::SOFT_DROP,  m_btnSoftDrop, "vv  SOFT DROP  vv", "HOLD TO ACCELERATE", sf::Color(50, 240, 80));
+    drawButton(VirtualButton::HARD_DROP,  m_btnHardDrop, "!! HARD DROP !!",  "INSTANT SLAM & LOCK", sf::Color(255, 215, 0));
 }
 
 void Game::drawHUD() {

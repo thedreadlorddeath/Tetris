@@ -1,4 +1,8 @@
 <p align="center">
+  <img src="assets/app_icon.png" width="130" style="border-radius: 28px; box-shadow: 0 0 25px #00F0FF;" alt="Cyberpunk Tetris App Icon" />
+</p>
+
+<p align="center">
   <img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=0:0b0e17,25:101523,50:1a153a,75:2d124d,100:00f0ff&height=260&section=header&text=NEON%20TETRIS&fontSize=65&fontAlignY=36&desc=%E3%80%8C%20CYBERPUNK%20ARCADE%20ENGINE%20%E2%80%A2%20C%2B%2B17%20%2F%20SFML%202.6.2%20%E3%80%8D&descSize=18&descAlignY=60&fontColor=00f0ff" width="100%" />
 </p>
 
@@ -126,7 +130,9 @@ Forget missing sound asset errors. Every audio effect in the game is **synthesiz
 
 ---
 
-## 🕹️ Arcade Control Deck
+## 🕹️ Dual-Mode Control Deck
+
+### ⌨️ Desktop Keyboard Bindings
 
 <div align="center">
 
@@ -144,18 +150,52 @@ Forget missing sound asset errors. Every audio effect in the game is **synthesiz
 
 </div>
 
+### 📱 Mobile Dual-Thumb Touch Deck (Ergonomic Gamepad)
+
+Designed from scratch for natural two-thumb handheld play on modern tall displays:
+
+```text
+┌──────────────────────────────────────────────────────────────────────────────────┐
+│  [ * HOLD ]          [ || PAUSE ]          [ (R) RESET ]          [ ~~ SOUND ]   │
+├────────────────────────────────────────┬─────────────────────────────────────────┤
+│            LEFT THUMB ZONE             │            RIGHT THUMB ZONE             │
+│  ┌─────────────────┐ ┌───────────────┐ │ ┌─────────────────┐ ┌─────────────────┐ │
+│  │     < LEFT      │ │    RIGHT >    │ │ │  ROT-L (CCW)    │ │   ROT-R (CW)    │ │
+│  └─────────────────┘ └───────────────┘ │ └─────────────────┘ └─────────────────┘ │
+│  ┌───────────────────────────────────┐ │ ┌─────────────────────────────────────┐ │
+│  │      vv  SOFT DROP (HOLD)  vv     │ │ │       !! HARD DROP (SLAM) !!        │ │
+│  └───────────────────────────────────┘ │ └─────────────────────────────────────┘ │
+└────────────────────────────────────────┴─────────────────────────────────────────┘
+```
+
+* ⚡ **Multi-Touch Finger Engine:** Supports simultaneous multi-finger tracking (`std::map<unsigned int, TouchPoint>`) so you can hold `LEFT` to glide across the matrix while simultaneously tapping `ROTATE` and slamming `HARD DROP`!
+* 🖐️ **Playfield Gestures:**
+  - **Horizontal Drag:** Drag anywhere across the 10×20 matrix to shift the piece smoothly (1 cell per 28px).
+  - **Quick Tap:** Tap directly on the playfield to instantly rotate 90° CW.
+  - **Flick Down:** Fast downward swipe triggers an instant Hard Drop!
+* 💡 **Active Neon Glow Feedback:** Buttons pulse with active neon brightness and white specular highlights when pressed.
+
 ---
 
 ## 🏗️ Project Anatomy
 
 ```text
 Tetris/
-├── CMakeLists.txt          # Automated FetchContent for SFML 2.6.2 & static compilation
+├── CMakeLists.txt          # Automated FetchContent for SFML 2.6.2 & static/Android compilation
 ├── .gitignore              # Ignores build dirs, binaries, and runtime artifacts
 ├── README.md               # Interactive Cyberpunk documentation
+├── build_and_sign.ps1      # Automated Android packaging, alignment & v1/v2/v3 signing
+├── verify_apk.ps1          # 6-step pre-delivery APK verification suite
+├── generate_icons.ps1      # High-DPI Cyberpunk icon generator
 ├── assets/
+│   ├── app_icon.png        # Official 512x512 Neon Tetris launcher icon
 │   ├── arcade_banner.svg   # Neon architecture vector banner
-│   └── gameplay.gif        # Live gameplay demonstration GIF
+│   ├── gameplay.gif        # Live gameplay demonstration GIF
+│   └── font.ttf            # Bundled arcade font for Android APK
+├── android/
+│   ├── Tetris.apk          # Production-ready, signed, crash-free release APK
+│   ├── release.keystore    # Dedicated release keystore (RSA 2048-bit)
+│   └── app/                # Android Gradle project, Manifest & Resources
 ├── include/
 │   ├── Config.hpp          # Dimensions, timings, colors, and game states
 │   ├── Tetromino.hpp       # Piece geometries, SRS kick tables, 3D block renderer
@@ -163,10 +203,10 @@ Tetris/
 │   ├── PieceBag.hpp        # 7-bag randomizer piece distribution queue
 │   ├── Particles.hpp       # Spark particle emitter & camera shake dynamics
 │   ├── SoundManager.hpp    # DSP synthesizer & 16-voice polyphonic audio pool
-│   └── Game.hpp            # Main game loop, state manager, HUD & event dispatcher
+│   └── Game.hpp            # Multi-touch input, state manager, HUD & event dispatcher
 └── src/
-    ├── main.cpp            # Application entry point
-    ├── Game.cpp            # Input dispatch, DAS/ARR tick, render passes
+    ├── main.cpp            # Application entry point (Android visibility export)
+    ├── Game.cpp            # Multi-touch gamepad, gestures, DAS/ARR tick, render passes
     ├── Board.cpp           # Grid updates, ghost calculation, line resolution
     ├── Tetromino.cpp       # SRS kick implementation & bevel block rendering
     ├── PieceBag.cpp        # 7-bag shuffle algorithm
@@ -219,20 +259,22 @@ cmake --build build -j$(nproc)
 
 Ready-to-install, verified, crash-free APK targeting **Android 9.0 (API 21) through Android 14/15 (API 34)** with native 64-bit `arm64-v8a` performance:
 
-* 📦 **Direct APK:** [`android/Tetris.apk`](android/Tetris.apk)
+* 📦 **Direct APK:** [`android/Tetris.apk`](android/Tetris.apk) (and root [`Tetris.apk`](Tetris.apk))
+* 🎨 **Official Icon:** Custom 512×512 3D Neon Tetromino launcher icon (no more placeholder icons!)
 * ⚡ **ABIs Included:** `arm64-v8a` (modern 64-bit Snapdragon/Tensor/Dimensity), `armeabi-v7a`, `x86_64` (emulator)
-* 🎮 **Controls:** Responsive on-screen Neon Touch D-Pad (Left, Right, Rotate CW/CCW, Soft Drop, Hard Drop, Hold, Pause, Restart, Mute)
+* 🎮 **Ergonomic Controls:** Dual-Thumb Cyber Gamepad with separated Left/Right and Soft/Hard drop zones, multi-touch finger tracking, and direct playfield swipe gestures
 * 📐 **Display:** Adaptive portrait 960×1600 `sf::View` with letterbox aspect-ratio preservation
 * 🛡️ **Hardened Packaging:** 
-  - `resources.arsc` stored uncompressed (`ZIP_STORED`) on a 4-byte boundary
+  - `resources.arsc` and `font.ttf` stored uncompressed (`ZIP_STORED`) on a 4-byte boundary
   - Full 4-byte / 16-KB page-alignment via `zipalign`
   - Signed with dedicated release keystore via **APK Signature Schemes v1, v2, and v3**
+  - Direct `sfml-main` bootstrap bypassing `libsfml-activity.so` to prevent Android 14 `clns-9` / `FORTIFY` mutex aborts
 
 ```powershell
 # Rebuild & re-sign APK from source anytime:
 .\build_and_sign.ps1
 
-# Run the 5-step pre-delivery verification suite:
+# Run the 6-step pre-delivery verification suite:
 .\verify_apk.ps1
 ```
 
